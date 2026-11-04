@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "streetnvs"
+version = "0.1.0"
+description = "StreetNVS inference extensions for DiffSynth-Studio"
+requires-python = ">=3.10,<3.13"
+dependencies = ["diffsynth @ git+https://github.com/modelscope/DiffSynth-Studio.git@273143136cd6486a3a747e067dbec96b8c8652da", "av", "opencv-python-headless", "numpy<2", "transformers==4.57.3", "huggingface-hub==0.36.2", "peft==0.21.2", "safetensors==0.8.0", "datasets==4.4.1"]
+[tool.setuptools.packages.find]
+include = ["streetnvs*"]

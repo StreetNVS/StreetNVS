@@ -1,0 +1,37 @@
+StreetNVS inference extensions
+
+DiffSynth-Studio: Copyright ModelScope Team, Apache License 2.0.
+PRoPE: adapted from "Cameras as Relative Positional Encoding" and UCPE (MIT).
+Data processing:
+- cameras.py, geometry.py, lidar.py, pointcloud.py and portions of render.py
+  adapt Street Crafter preprocessing. Copyright 2024-2025 3D Vision Group at
+  the State Key Lab of CAD&CG, Zhejiang University. The upstream educational,
+  research and non-profit license is retained in
+  data_processing/licenses/StreetCrafter.txt and applies to these portions.
+- rasterizer.py includes EasyVolcap camera conversion (MIT). Copyright (c) 2024
+  3D Vision Group, Zhejiang University. Full notice:
+  data_processing/licenses/EasyVolcap.txt.
+- diff-point-rasterization is fetched at setup time from yunzhiy's pinned fork.
+  Its upstream Inria/MPII research license is reproduced in
+  data_processing/licenses/PointRasterizer.txt. It is not Apache-licensed.
+- Official Waymo Python range-image utilities and generated protobuf readers
+  are obtained from the official repository at setup time (Apache License 2.0).
+  No Waymo dataset files are distributed with this repository.
+
+MIT license notice for the PRoPE-derived implementation:
+Copyright (c) Authors of "Cameras as Relative Positional Encoding".
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to
+do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
