@@ -81,39 +81,77 @@ models/
 
 Please follow [data_processing/README.md](data_processing/README.md) to prepare a Waymo scene. The guide walks through downloading the raw data, extracting cameras and LiDAR, and rendering the inputs for inference.
 
-The example uses scene 010 with two camera paths: bird's-eye view (`bev`) and extreme lane shift (`lane_shift_extreme`). It saves the inputs to `data/scene010/`. You can change the point sampling ratio to `0.1`, `0.01`, or `0.001` when rendering.
+The examples below use scene 010. Prepare the recorded front camera (`0`) in `data/scene010_cam0/`, and the novel camera paths (`bev` and `lane_shift_extreme`) in `data/scene010/`. The guide provides complete commands for both. You can change the point sampling ratio to `0.1`, `0.01`, or `0.001` when rendering.
 
 You will need your own [Waymo Open Dataset](https://waymo.com/open/) access. We do not include Waymo data in this repository.
 
 ## Inference
 
-After preparing the data, run:
+### 1. Front Camera (Camera 0)
+
+Start with the recorded front camera. Follow the [camera 0 preparation commands](data_processing/README.md#front-camera-camera-0), then run:
 
 ```bash
 python -m streetnvs.infer \
   --models models/Wan2.2-TI2V-5B \
   --checkpoint models/StreetNVS/streetnvs.safetensors \
-  --data data/scene010 --scene 10 --camera bev \
-  --reference-cameras 0 1 2 3 4 --num-frames 81 \
-  --output outputs/scene010_bev.mp4
+  --data data/scene010_cam0 --scene 10 --camera 0 \
+  --reference-cameras 1 2 3 4 --num-frames 81 \
+  --start 0 --steps 20 --cfg 5 --seed 42 \
+  --output outputs/scene010_cam0.mp4
 ```
 
-For extreme lane shift, change `--camera` to `lane_shift_extreme` and choose a different output filename. The defaults are 20 denoising steps, guidance scale 5, and seed 42. The video is saved at **832 × 480 and 10 FPS**, along with a JSON file containing the settings.
+This follows the recorded front-camera trajectory and uses the first image from each of the other four cameras as a reference. The target camera supplies the initial frame.
 
-You can also use `--num-frames 49` for a 49-frame input. Camera IDs `0`–`4` refer to front, front-left, front-right, side-left, and side-right. To render a recorded camera view, use its numeric ID for `--camera`; it will be left out of the reference images automatically.
+### 2. Extreme Novel-view Synthesis
 
-For the recorded front camera, prepare the inputs with `--trajectories 0` as described in the [data preparation guide](data_processing/README.md). Then use `--data data/scene010_cam0 --camera 0 --reference-cameras 1 2 3 4` in the command above.
+Prepare the [novel camera paths](data_processing/README.md#extreme-novel-views), then generate an extreme lane-shift video:
+
+```bash
+python -m streetnvs.infer \
+  --models models/Wan2.2-TI2V-5B \
+  --checkpoint models/StreetNVS/streetnvs.safetensors \
+  --data data/scene010 --scene 10 --camera lane_shift_extreme \
+  --reference-cameras 0 1 2 3 4 --num-frames 81 \
+  --start 0 --steps 20 --cfg 5 --seed 42 \
+  --output outputs/scene010_lane_shift_extreme.mp4
+```
+
+Novel trajectories use all five surround-view cameras as references. For bird's-eye view, change `--camera` to `bev` and use `--output outputs/scene010_bev.mp4`.
+
+Both examples save an **832 × 480 video at 10 FPS** and a JSON file containing the settings. Use `--num-frames 49` when your prepared input has 49 frames.
+
+### Inference Parameters
+
+The table lists CLI defaults; the commands above set the values used for scene 010 explicitly.
+
+| Parameter | Default | Purpose |
+| --- | --- | --- |
+| `--models` | Required | Directory containing the Wan text encoder, VAE, and tokenizer. |
+| `--checkpoint` | Required | Path to `streetnvs.safetensors`. |
+| `--data` | Required | Prepared input directory containing `metadata_cond.csv`, `camera_data.json`, and the videos. |
+| `--scene` | `0` | Scene ID in the metadata; use `10` for scene 010. |
+| `--camera` | `2` | Target camera ID or prepared trajectory name; these examples use `0`, `lane_shift_extreme`, or `bev`. |
+| `--reference-cameras` | `0 1 2` | Cameras supplying reference images. Use `1 2 3 4` for camera 0 and `0 1 2 3 4` for novel views. The target camera is excluded automatically. |
+| `--num-frames` | `49` | Output length: `49` or `81`. Must match the prepared clip length. |
+| `--start` | `0` | Selects the clip whose `start_frame` matches this value in the metadata. |
+| `--steps` | `20` | Number of denoising steps. More steps take longer. |
+| `--cfg` | `5.0` | Text guidance scale. Set to `1` to disable classifier-free guidance. |
+| `--seed` | `42` | Random seed for noise initialization. |
+| `--output` | Required | Output MP4 path; a JSON file with the same stem records the run settings. |
+
+Camera IDs `0`–`4` are front, front-left, front-right, side-left, and side-right. Point sampling and trajectory shape are set during [data preparation](data_processing/README.md#4-render-and-export).
 
 Run `python -m streetnvs.infer --help` for all options.
 
 ### Results
 
-The videos below are from the paper. Results may vary with the input point sampling and random seed. See the [project page](https://streetnvs.github.io/website/) for more videos and comparisons.
+The camera 0 result was generated with the first example above. The BEV and extreme lane-shift videos are from the paper. Results may vary with point sampling and random seed; see the [project page](https://streetnvs.github.io/website/) for more videos and comparisons.
 
-| Bird's-eye view | Extreme lane shift |
-| :---: | :---: |
-| [![Bird's-eye view](assets/scene010_bev.gif)](assets/scene010_bev.mp4) | [![Extreme lane shift](assets/scene010_lane_shift_extreme.gif)](assets/scene010_lane_shift_extreme.mp4) |
-| [Full video](assets/scene010_bev.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/bev/cond.mp4) | [Full video](assets/scene010_lane_shift_extreme.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/lane_shift_extreme/cond.mp4) |
+| Front camera (camera 0) | Bird's-eye view | Extreme lane shift |
+| :---: | :---: | :---: |
+| [![Front camera](assets/scene010_cam0.gif)](assets/scene010_cam0.mp4) | [![Bird's-eye view](assets/scene010_bev.gif)](assets/scene010_bev.mp4) | [![Extreme lane shift](assets/scene010_lane_shift_extreme.gif)](assets/scene010_lane_shift_extreme.mp4) |
+| [Full video](assets/scene010_cam0.mp4) | [Full video](assets/scene010_bev.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/bev/cond.mp4) | [Full video](assets/scene010_lane_shift_extreme.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/lane_shift_extreme/cond.mp4) |
 
 ## Citation
 

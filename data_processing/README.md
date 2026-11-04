@@ -1,13 +1,13 @@
 # Data Preparation
 
-This guide prepares scene 010 from raw Waymo data for bird's-eye view and
-extreme lane-shift inference. There are four steps:
+This guide prepares scene 010 from raw Waymo data for front-camera inference,
+followed by bird's-eye view and extreme lane-shift inference. There are four steps:
 
 ```text
 raw TFRecord + matching Parquet
   → images, camera poses, tracks, dynamic masks
   → background and actor point clouds
-  → sparse RGB / alpha / depth and novel camera trajectories
+  → sparse RGB / alpha / depth and target camera trajectories
   → metadata_cond.csv + camera_data.json + conditioning/reference videos
 ```
 
@@ -106,7 +106,34 @@ export runs on CPU:
 ```bash
 source scripts/env.sh
 source .venv/bin/activate
+```
 
+### Front Camera (Camera 0)
+
+Render the recorded FRONT exposure poses and export the inputs for the first
+[inference example](../README.md#1-front-camera-camera-0):
+
+```bash
+PYTHONHASHSEED=0 python -m data_processing.render \
+  --processed data/processed --scene 10 \
+  --trajectories 0 --num-frames 81 \
+  --ratio 0.01 --point-scale 0.02 --stride 10 \
+  --output data/rendered/scene010_cam0
+
+python -m data_processing.export \
+  --processed data/processed --scene 10 \
+  --rendered data/rendered/scene010_cam0 --output data/scene010_cam0
+```
+
+Use `--camera 0 --reference-cameras 1 2 3 4` for inference. The other four
+cameras supply the reference images, and camera 0 supplies the initial frame.
+
+### Extreme Novel Views
+
+To run the [extreme NVS example](../README.md#2-extreme-novel-view-synthesis),
+render and export the two novel trajectories to a separate directory:
+
+```bash
 PYTHONHASHSEED=0 python -m data_processing.render \
   --processed data/processed --scene 10 \
   --trajectories bev lane_shift_extreme --num-frames 81 \
@@ -124,10 +151,15 @@ Set `PYTHONHASHSEED=0` for repeatable point sampling across runs.
 
 | Parameter | Default | Purpose |
 | --- | --- | --- |
+| `--processed` | Required | Root directory containing extracted scenes, such as `data/processed/010/`. |
+| `--scene` | `10` | Scene ID to render. |
+| `--output` | Required | New directory for rendered conditioning videos and camera metadata. |
+| `--trajectories` | `bev lane_shift_extreme` | Target paths: `0` for the recorded front camera, or `bev` and `lane_shift_extreme` for novel views. |
 | `--ratio` | `0.01` | Fraction of points to retain; `0.1`, `0.01`, `0.001`, or another value in `(0, 1]`. |
 | `--point-scale` | `0.02` | Point footprint scale used by the rasterizer. |
 | `--stride` | `10` | Frame stride for full-scene LiDAR aggregation. |
 | `--num-frames` | `81` | Output clip length; also accepts `49`. |
+| `--gpu` | `0` | CUDA device index used for rendering. |
 | `--bev-height` / `--bev-pitch` | `60` / `60` | Final elevation in metres and pitch in degrees. |
 | `--bev-backward` | `-5` | Final backward offset in metres. |
 | `--lane-shift` | `7` | Signed sinusoidal lateral amplitude in metres. |
@@ -137,23 +169,19 @@ trajectory settings start at the raw FRONT exposure pose. Both trajectories
 use five first-frame surround-view references. The exporter verifies every
 video's frame count before writing the final CSV.
 
-To generate inputs for the recorded front camera, use `--trajectories 0` and
-separate output directories, for example `data/rendered/scene010_cam0` and
-`data/scene010_cam0`. Then run inference with `--data data/scene010_cam0
---scene 10 --camera 0 --reference-cameras 1 2 3 4 --num-frames 81`. This follows
-the recorded FRONT exposure poses and uses the other four cameras as references.
-
 ## Inference Input Format
 
 ```text
-data/scene010/
+data/scene010_cam0/
 ├── metadata_cond.csv
 ├── camera_data.json
 ├── preparation.json
 ├── references/             # Original FRONT image + five reference videos
-├── bev/                    # rgb.mp4, mask.mp4, depth.mp4, depth_normalization.json
-└── lane_shift_extreme/
+└── 0/                      # rgb.mp4, mask.mp4, depth.mp4, depth_normalization.json
 ```
+
+For extreme novel views, the export is `data/scene010/` with `bev/` and
+`lane_shift_extreme/` conditioning directories in place of `0/`.
 
 `metadata_cond.csv` contains:
 
@@ -161,9 +189,11 @@ data/scene010/
 video,prompt,cond_video,cond_video_mask,cond_video_depth,cond_reference_image,scene_id,camera_id,start_frame,end_frame
 ```
 
-Paths are relative to the export directory. Target rows use the trajectory
-name as `camera_id`; reference rows use `0`–`4`. `end_frame` is exclusive.
-The original FRONT image supplies the initial frame for novel trajectories.
+Paths are relative to the export directory. The front-camera target row uses
+`0` as `camera_id`; novel-view target rows use the trajectory name. Camera
+reference rows use `0`–`4`, with the target camera excluded during inference.
+`end_frame` is exclusive. The original FRONT image supplies the initial frame
+for novel trajectories.
 
 - **Conditioning mask:** black is observed geometry; white is unknown. The renderer's
   alpha is inverted during export. Dynamic object masks are a separate extraction
@@ -175,8 +205,9 @@ The original FRONT image supplies the initial frame for novel trajectories.
   render dimensions. Inference resizes to 832 × 480, scales translation by 0.1,
   and normalizes poses relative to the first target pose.
 
-Continue with the main [inference command](../README.md#inference), setting
-`--data data/scene010 --scene 10 --camera bev --num-frames 81`.
+Continue with the main [inference examples](../README.md#inference): camera 0
+uses `--data data/scene010_cam0 --camera 0`, and extreme lane shift uses
+`--data data/scene010 --camera lane_shift_extreme`.
 
 ## Attribution
 
