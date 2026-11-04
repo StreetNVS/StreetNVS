@@ -151,7 +151,7 @@ The camera 0 result was generated with the first example above. The BEV and extr
 | Front camera (camera 0) | Bird's-eye view | Extreme lane shift |
 | :---: | :---: | :---: |
 | [![Front camera](assets/scene010_cam0.gif)](assets/scene010_cam0.mp4) | [![Bird's-eye view](assets/scene010_bev.gif)](assets/scene010_bev.mp4) | [![Extreme lane shift](assets/scene010_lane_shift_extreme.gif)](assets/scene010_lane_shift_extreme.mp4) |
-| [Full video](assets/scene010_cam0.mp4) | [Full video](assets/scene010_bev.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/bev/cond.mp4) | [Full video](assets/scene010_lane_shift_extreme.mp4) · [LiDAR conditioning](https://streetnvs.github.io/website/assets/novel_view/scene010/lane_shift_extreme/cond.mp4) |
+| [Full video](assets/scene010_cam0.mp4) | [Full video](assets/scene010_bev.mp4) | [Full video](assets/scene010_lane_shift_extreme.mp4) |
 
 ## Citation
 
